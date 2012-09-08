@@ -1,7 +1,13 @@
 BhGesturePad for Gideros 
 ========================
 
-Utility functions. 
+This software is multi-stroke gesture recognition library for Gideros Mobile SDK.
+It is an extension of the Lua implementation of Protractor unistroke gesture 
+recognition by Arturs Sosins (http://appcodingeasy.com). The original Gesture.lua has been
+included untouched but the stroke capture and drawing component is not used. This version
+extends the algorithm to include multistroke gestures with my version of n-Protractor.
+
+You can read more about this module in [my blog entry](http://bowerhaus.eu/blog/files/multistroke_gestures.html).
 
 Folder Structure
 ----------------
