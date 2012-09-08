@@ -1,0 +1,37 @@
+<project>
+ <properties autorotation="0" fps="30" scaleMode="2" iosDevice="1" xcodeVersion="0" packageName="com.bowerhaus.bhgesturepad" logicalHeight="1024" logicalWidth="768" retinaDisplay="1" assetsOnly="1" orientation="1" architecture="0">
+  <imageScales>
+   <scale suffix="@2x" scale="2"/>
+  </imageScales>
+ </properties>
+ <file source="init.lua"/>
+ <folder name="Images">
+  <file source="Images/BhDesk.png"/>
+ </folder>
+ <folder name="Libraries">
+  <file source="../../Misc/Json.lua"/>
+  <file source="../BhEventShield/BhEventShield.lua"/>
+  <file source="../../Misc/DataDumper.lua"/>
+  <file source="../BhButton/BhButton.lua"/>
+  <file source="../BhHelpers/BhHelpers.lua"/>
+  <file source="../BhHelpers/BhStream.lua"/>
+  <file source="../../Misc/strict.lua"/>
+ </folder>
+ <folder name="GesturePad">
+  <folder name="Fonts">
+   <file source="GesturePad/Fonts/Tahoma.ttf"/>
+  </folder>
+  <file source="GesturePad/Gestures.lua"/>
+  <file source="GesturePad/BhWritingSurface.lua"/>
+  <file source="GesturePad/BhGesturePad.lua"/>
+  <folder name="Images">
+   <file source="GesturePad/Images/BhGesturePad@2x.txt"/>
+   <file source="GesturePad/Images/BhGesturePad@2x.png"/>
+   <file source="GesturePad/Images/BhGesturePad.txt"/>
+   <file source="GesturePad/Images/BhGesturePad.png"/>
+  </folder>
+ </folder>
+ <file source="Letters.lua"/>
+ <file source="GesturePadDemo.lua"/>
+ <file source="main.lua"/>
+</project>
