@@ -129,7 +129,7 @@ function BhGesturePad:init(optSkinName, optPack, optFont)
 	self.background:setAnchorPoint(0.5, 0.5)
 	self:addChild(self.background)
 	
-	local font = optFont or TTFont.new(pathto("Fonts/Tahoma.ttf"), 20)
+	local font = optFont or TTFont.new(pathto("Fonts/Tahoma.ttf"), 20, true)
 	self.message=TextField.new(font, "")
 	self:addChild(self.message)
 

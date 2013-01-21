@@ -1,7 +1,8 @@
 <project>
- <properties autorotation="0" fps="30" scaleMode="2" iosDevice="1" xcodeVersion="0" packageName="com.bowerhaus.bhgesturepad" logicalHeight="1024" logicalWidth="768" retinaDisplay="1" assetsOnly="1" orientation="1" architecture="0">
+ <properties autorotation="0" fps="30" scaleMode="3" iosDevice="1" packageName="com.bowerhaus.bhgesturepad" logicalHeight="1024" logicalWidth="768" retinaDisplay="1" assetsOnly="1" orientation="1" architecture="0">
   <imageScales>
    <scale suffix="@2x" scale="2"/>
+   <scale suffix="suffix" scale="0"/>
   </imageScales>
  </properties>
  <file source="init.lua"/>

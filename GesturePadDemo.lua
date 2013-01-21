@@ -59,7 +59,7 @@ function GesturePadDemo:addFun()
 end
 
 function GesturePadDemo:init()
-	self:addChild(Bitmap.new(Texture.new(pathto("Images/BhDesk.png"))))
+	self:addChild(Bitmap.new(Texture.new(pathto("Images/BhDesk.png"), true)))
 	
 	local pad=BhGesturePad.new()
 	pad:setPosition(stage:bhGetCenter())
