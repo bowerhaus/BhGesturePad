@@ -25,16 +25,25 @@ This code is MIT licensed, see http://www.opensource.org/licenses/mit-license.ph
 ]]
 BhWritingSurface=Core.class(Shape)
 
-function BhWritingSurface:init(width, height, penwidth, pencolor)	
+local DEFAULT_WRITING_TIMEOUT=1
+local DEFAULT_VELOCITY_SMOOTHING=32
+
+function BhWritingSurface:init(width, height, penwidth, pencolor, penalpha)	
 	self.pencolor=pencolor or 0
 	self.penwidth=penwidth or 1
+	self.penalpha=penalpha or 1
 	self.width=width
 	self.height=height
 	self.finishedTimer=Timer.new(0, 0)
 	self:erase()
-	self:addEventListener(Event.ADDED_TO_STAGE, self.onAddedToStage, self)
-	self:addEventListener(Event.REMOVED_FROM_STAGE, self.onRemovedFromStage, self)
-	self.writingTimeout=1
+	self.writingTimeout=DEFAULT_WRITING_TIMEOUT
+	self.velocitySmoothing=DEFAULT_VELOCITY_SMOOTHING
+	self.joinGlyphDistance=0
+	self.minPointDistance=2
+	
+	self:addEventListener(Event.MOUSE_DOWN, self.onMouseDown, self)
+	self:addEventListener(Event.MOUSE_MOVE, self.onMouseMove, self)
+    self:addEventListener(Event.MOUSE_UP, self.onMouseUp, self)
 end
 
 function BhWritingSurface:erase()	
@@ -48,7 +57,7 @@ function BhWritingSurface:erase()
 	self:lineTo(0, self.height)
 	self:lineTo(0, 0)
 	self:endPath()
-	self:setLineStyle(self.penwidth, self.pencolor)
+	self:setLineStyle(self.penwidth, self.pencolor, self.penalpha)
 	self.glyphSet={}
 	self.allGlyphs={}
 	self.finishedTimer:stop()
@@ -75,33 +84,35 @@ function BhWritingSurface:lastGlyphPointPosition()
 	return pt.x, pt.y
 end
 
-function BhWritingSurface:onAddedToStage()
-	self:addEventListener(Event.MOUSE_DOWN, self.onMouseDown, self)
-	self:addEventListener(Event.MOUSE_MOVE, self.onMouseMove, self)
-    self:addEventListener(Event.MOUSE_UP, self.onMouseUp, self)
-	self:addEventListener(Event.TOUCHES_BEGIN, self.onIgnoreTouches, self)
-	self:addEventListener(Event.TOUCHES_MOVE, self.onIgnoreTouches, self)
-	self:addEventListener(Event.TOUCHES_END, self.onIgnoreTouches, self)
-	self:addEventListener(Event.TOUCHES_CANCEL, self.onIgnoreTouches, self)
+local function movingMedian(values, count, newValue)
+	if #values>=count then 
+		table.remove(values, count) 
+	end
+	table.insert(values, 1, newValue)
+	local medianCopy=table.copy(values)
+	table.sort(medianCopy)
+	return medianCopy[math.ceil(#medianCopy/2)]
 end
- 
-function BhWritingSurface:onRemovedFromStage()
-	self:removeEventListener(Event.MOUSE_DOWN, self.onMouseDown, self)
-	self:removeEventListener(Event.MOUSE_MOVE, self.onMouseMove, self)
-    self:removeEventListener(Event.MOUSE_UP, self.onMouseUp, self)
-	self:removeEventListener(Event.TOUCHES_BEGIN, self.onIgnoreTouches, self)
-	self:removeEventListener(Event.TOUCHES_MOVE, self.onIgnoreTouches, self)
-	self:removeEventListener(Event.TOUCHES_END, self.onIgnoreTouches, self)
-	self:removeEventListener(Event.TOUCHES_CANCEL, self.onIgnoreTouches, self)	
-	self.finishedTimer:stop()
-end 
 
 function BhWritingSurface:onMouseDown(event)
 	if self:isVisibleDeeply() and self:hitTestPoint(event.x, event.y) then
+		local isJoinGlyph=false
 		self.finishedTimer:stop()
 		self.focus=self
 		self:clearGlyph()
 		local lx, ly=self:globalToLocal(event.x, event.y)		
+		
+		if self.joinGlyphDistance>0 and #self.glyphSet>0 then
+			-- See if we should join this stroke to the end of the lastGlyphPointPosition
+			local lastGlyph=self.glyphSet[#self.glyphSet]
+			local lastPoint=lastGlyph[#lastGlyph]
+			if math.pt2dDistance(lx, ly, lastPoint.x, lastPoint.y)<self.joinGlyphDistance then
+				bhDebugf("Join stroke actvated")
+				lx=lastPoint.x
+				ly=lastPoint.y
+				isJoinGlyph=true
+			end
+		end
 		
 		self.glyphStartTime=os.timer()
 		self.lastGlyphTime=self.glyphStartTime
@@ -123,21 +134,12 @@ function BhWritingSurface:onMouseDown(event)
 		local newEvent=Event.new("startGlyph")
 		newEvent.x=event.x
 		newEvent.y=event.y
+		newEvent.isJoinGlyph=isJoinGlyph
 		self:dispatchEvent(newEvent)
 		
 		event:stopPropagation()
 	end
 end 
-
-local function movingMedian(values, count, newValue)
-	if #values>=count then 
-		table.remove(values, count) 
-	end
-	table.insert(values, 1, newValue)
-	local medianCopy=table.copy(values)
-	table.sort(medianCopy)
-	return medianCopy[math.ceil(#medianCopy/2)]
-end
 
 function BhWritingSurface:onMouseMove(event)
 	if self.focus and self:hitTestPoint(event.x, event.y) then	
@@ -145,21 +147,23 @@ function BhWritingSurface:onMouseMove(event)
 		local timeNow=os.timer()
 		local lastPoint=self.glyph[#self.glyph]
 		
-		-- Compute median velocity over 8 recent points
-		local dist=math.pt2dDistance(lastPoint.x, lastPoint.y, lx, ly)
-		local timeDelta=timeNow-self.lastGlyphTime
-		local velocity=movingMedian(self.recentVelocities, 32, dist/(timeDelta)/1000)
-		
-		self.lastGlyphTime=timeNow
-		local point = { x=lx, y=ly, velocity=velocity}
-		
-		-- Echo this segment
-		self:beginPath()
-		--self:setLineStyle(velocity*10, self.pencolor)
-		self:moveTo(self:lastGlyphPointPosition())	
-		self:lineTo(lx, ly)
-		self:endPath()
-		table.insert(self.glyph, point)		
+		if math.pt2dDistance(lx, ly, lastPoint.x, lastPoint.y) > self.minPointDistance then
+			-- Compute median velocity over n recent points
+			local dist=math.pt2dDistance(lastPoint.x, lastPoint.y, lx, ly)
+			local timeDelta=timeNow-self.lastGlyphTime
+			local velocity=movingMedian(self.recentVelocities, self.velocitySmoothing, dist/(timeDelta)/1000)
+			
+			self.lastGlyphTime=timeNow
+			local point = { x=lx, y=ly, velocity=velocity}
+			
+			-- Echo this segment
+			self:beginPath()
+			--self:setLineStyle(velocity*10, self.pencolor)
+			self:moveTo(self:lastGlyphPointPosition())	
+			self:lineTo(lx, ly)
+			self:endPath()
+			table.insert(self.glyph, point)	
+		end
 
 		event:stopPropagation()
 	end
@@ -194,9 +198,3 @@ function BhWritingSurface:onMouseUp(event)
 		event:stopPropagation()
 	end
 end 
-
-function BhWritingSurface:onIgnoreTouches(event)
-	if self.focus then
-		event:stopPropagation()
-	end
-end
