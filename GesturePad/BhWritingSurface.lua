@@ -41,9 +41,9 @@ function BhWritingSurface:init(width, height, penwidth, pencolor, penalpha)
 	self.joinGlyphDistance=0
 	self.minPointDistance=2
 	
-	self:addEventListener(Event.MOUSE_DOWN, self.onMouseDown, self)
-	self:addEventListener(Event.MOUSE_MOVE, self.onMouseMove, self)
-    self:addEventListener(Event.MOUSE_UP, self.onMouseUp, self)
+	self:addEventListener(Event.TOUCHES_BEGIN, self.onTouchBegin, self)
+	self:addEventListener(Event.TOUCHES_MOVE, self.onTouchMove, self)
+    self:addEventListener(Event.TOUCHES_END, self.onTouchEnd, self)
 end
 
 function BhWritingSurface:erase()	
@@ -94,13 +94,13 @@ local function movingMedian(values, count, newValue)
 	return medianCopy[math.ceil(#medianCopy/2)]
 end
 
-function BhWritingSurface:onMouseDown(event)
-	if self:isVisibleDeeply() and self:hitTestPoint(event.x, event.y) then
+function BhWritingSurface:onTouchBegin(event)
+	if self:isVisibleDeeply() and self:hitTestPoint(event.touch.x, event.touch.y) then
 		local isJoinGlyph=false
 		self.finishedTimer:stop()
-		self.focus=self
+		self.focus=event.touch.id
 		self:clearGlyph()
-		local lx, ly=self:globalToLocal(event.x, event.y)		
+		local lx, ly=self:globalToLocal(event.touch.x, event.touch.y)		
 		
 		if self.joinGlyphDistance>0 and #self.glyphSet>0 then
 			-- See if we should join this stroke to the end of the lastGlyphPointPosition
@@ -141,9 +141,9 @@ function BhWritingSurface:onMouseDown(event)
 	end
 end 
 
-function BhWritingSurface:onMouseMove(event)
-	if self.focus and self:hitTestPoint(event.x, event.y) then	
-		local lx, ly=self:globalToLocal(event.x, event.y)
+function BhWritingSurface:onTouchMove(event)
+	if self.focus==event.touch.id and self:hitTestPoint(event.touch.x, event.touch.y) then	
+		local lx, ly=self:globalToLocal(event.touch.x, event.touch.y)
 		local timeNow=os.timer()
 		local lastPoint=self.glyph[#self.glyph]
 		
@@ -177,8 +177,8 @@ function BhWritingSurface:createFinishedTimer(onTimeoutFunc)
 	self.finishedTimer:start()	
 end
 
-function BhWritingSurface:onMouseUp(event)
-	if self.focus then
+function BhWritingSurface:onTouchEnd(event)
+	if self.focus==event.touch.id then
 		self.focus = nil
 		self.lastGlyphTime = nil
 		table.insert(self.glyphSet, self.glyph)
